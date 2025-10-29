@@ -82,7 +82,7 @@ class Calculator {
         });
     }
 
-    initializeHistory() {
+    async initializeHistory() {
         const historyPanel = document.createElement('div');
         historyPanel.classList.add('history-panel');
         this.historyPanel = historyPanel;
@@ -100,6 +100,9 @@ class Calculator {
         historyPanel.appendChild(clearButton);
 
         document.querySelector('.calculator-container').appendChild(historyPanel);
+
+        // Load history from Supabase
+        await this.loadHistoryFromDB();
     }
 
     handleNumber(num) {
@@ -308,12 +311,15 @@ class Calculator {
         this.historyPanel.classList.toggle('show');
     }
 
-    addToHistory(calculation) {
+    async addToHistory(calculation) {
         this.history.unshift(calculation);
         if (this.history.length > 20) {
             this.history.pop();
         }
         this.renderHistory();
+
+        // Save to Supabase
+        await this.saveHistoryToDB(calculation);
     }
 
     renderHistory() {
@@ -326,9 +332,77 @@ class Calculator {
         });
     }
 
-    clearHistory() {
+    async clearHistory() {
         this.history = [];
         this.renderHistory();
+
+        // Clear from Supabase
+        await this.clearHistoryFromDB();
+    }
+
+    // Supabase integration methods
+    async saveHistoryToDB(calculation) {
+        if (!window.supabaseClient) {
+            console.warn('Supabase not configured');
+            return;
+        }
+
+        try {
+            const { data, error } = await window.supabaseClient
+                .from('calculator_history')
+                .insert([
+                    {
+                        calculation: calculation,
+                        created_at: new Date().toISOString()
+                    }
+                ]);
+
+            if (error) throw error;
+        } catch (error) {
+            console.error('Error saving to Supabase:', error);
+        }
+    }
+
+    async loadHistoryFromDB() {
+        if (!window.supabaseClient) {
+            console.warn('Supabase not configured');
+            return;
+        }
+
+        try {
+            const { data, error } = await window.supabaseClient
+                .from('calculator_history')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(20);
+
+            if (error) throw error;
+
+            if (data && data.length > 0) {
+                this.history = data.map(item => item.calculation);
+                this.renderHistory();
+            }
+        } catch (error) {
+            console.error('Error loading from Supabase:', error);
+        }
+    }
+
+    async clearHistoryFromDB() {
+        if (!window.supabaseClient) {
+            console.warn('Supabase not configured');
+            return;
+        }
+
+        try {
+            const { error } = await window.supabaseClient
+                .from('calculator_history')
+                .delete()
+                .neq('id', 0); // Delete all records
+
+            if (error) throw error;
+        } catch (error) {
+            console.error('Error clearing from Supabase:', error);
+        }
     }
 }
 
