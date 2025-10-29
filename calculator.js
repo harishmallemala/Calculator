@@ -1,0 +1,292 @@
+class Calculator {
+    constructor() {
+        this.currentValue = '0';
+        this.previousValue = '';
+        this.operation = null;
+        this.shouldResetDisplay = false;
+
+        this.currentDisplay = document.getElementById('currentDisplay');
+        this.previousDisplay = document.getElementById('previousDisplay');
+
+        this.initializeButtons();
+        this.initializeKeyboard();
+    }
+
+    initializeButtons() {
+        // Number buttons
+        document.querySelectorAll('[data-number]').forEach(button => {
+            button.addEventListener('click', (e) => {
+                this.handleNumber(button.dataset.number);
+                this.addClickEffect(button);
+            });
+        });
+
+        // Operator buttons
+        document.querySelectorAll('[data-operator]').forEach(button => {
+            button.addEventListener('click', (e) => {
+                this.handleOperator(button.dataset.operator);
+                this.addClickEffect(button);
+                this.highlightOperator(button);
+            });
+        });
+
+        // Action buttons
+        document.querySelectorAll('[data-action]').forEach(button => {
+            button.addEventListener('click', (e) => {
+                this.handleAction(button.dataset.action);
+                this.addClickEffect(button);
+            });
+        });
+    }
+
+    initializeKeyboard() {
+        document.addEventListener('keydown', (e) => {
+            // Numbers and decimal
+            if (e.key >= '0' && e.key <= '9' || e.key === '.') {
+                this.handleNumber(e.key);
+                this.highlightButton(`[data-number="${e.key}"]`);
+            }
+
+            // Operators
+            if (e.key === '+' || e.key === '-' || e.key === '*' || e.key === '/') {
+                this.handleOperator(e.key);
+                this.highlightButton(`[data-operator="${e.key}"]`);
+            }
+
+            // Enter or equals
+            if (e.key === 'Enter' || e.key === '=') {
+                e.preventDefault();
+                this.handleAction('equals');
+                this.highlightButton('[data-action="equals"]');
+            }
+
+            // Escape or C
+            if (e.key === 'Escape' || e.key.toLowerCase() === 'c') {
+                this.handleAction('clear');
+                this.highlightButton('[data-action="clear"]');
+            }
+
+            // Backspace or Delete
+            if (e.key === 'Backspace' || e.key === 'Delete') {
+                this.handleAction('delete');
+                this.highlightButton('[data-action="delete"]');
+            }
+
+            // Percent
+            if (e.key === '%') {
+                this.handleAction('percent');
+                this.highlightButton('[data-action="percent"]');
+            }
+        });
+    }
+
+    handleNumber(num) {
+        // Prevent multiple decimal points
+        if (num === '.' && this.currentValue.includes('.')) return;
+
+        if (this.shouldResetDisplay) {
+            this.currentValue = num === '.' ? '0.' : num;
+            this.shouldResetDisplay = false;
+        } else {
+            if (this.currentValue === '0' && num !== '.') {
+                this.currentValue = num;
+            } else {
+                this.currentValue += num;
+            }
+        }
+
+        this.updateDisplay();
+    }
+
+    handleOperator(operator) {
+        if (this.operation !== null && !this.shouldResetDisplay) {
+            this.calculate();
+        }
+
+        this.operation = operator;
+        this.previousValue = this.currentValue;
+        this.shouldResetDisplay = true;
+
+        this.updatePreviousDisplay();
+        this.removeOperatorHighlight();
+    }
+
+    handleAction(action) {
+        switch(action) {
+            case 'clear':
+                this.clear();
+                break;
+            case 'delete':
+                this.delete();
+                break;
+            case 'percent':
+                this.percent();
+                break;
+            case 'equals':
+                this.calculate();
+                break;
+        }
+    }
+
+    calculate() {
+        if (this.operation === null || this.shouldResetDisplay) return;
+
+        const prev = parseFloat(this.previousValue);
+        const current = parseFloat(this.currentValue);
+
+        if (isNaN(prev) || isNaN(current)) return;
+
+        let result;
+        switch(this.operation) {
+            case '+':
+                result = prev + current;
+                break;
+            case '-':
+                result = prev - current;
+                break;
+            case '*':
+                result = prev * current;
+                break;
+            case '/':
+                if (current === 0) {
+                    this.showError();
+                    return;
+                }
+                result = prev / current;
+                break;
+            default:
+                return;
+        }
+
+        // Format result to avoid floating point issues
+        result = Math.round(result * 100000000) / 100000000;
+
+        // Limit decimal places for display
+        if (result.toString().length > 12) {
+            result = parseFloat(result.toPrecision(12));
+        }
+
+        this.currentValue = result.toString();
+        this.operation = null;
+        this.previousValue = '';
+        this.shouldResetDisplay = true;
+
+        this.updateDisplay();
+        this.updatePreviousDisplay();
+        this.removeOperatorHighlight();
+
+        // Add subtle calculation animation
+        this.animateResult();
+    }
+
+    clear() {
+        this.currentValue = '0';
+        this.previousValue = '';
+        this.operation = null;
+        this.shouldResetDisplay = false;
+
+        this.updateDisplay();
+        this.updatePreviousDisplay();
+        this.removeOperatorHighlight();
+    }
+
+    delete() {
+        if (this.shouldResetDisplay) return;
+
+        if (this.currentValue.length > 1) {
+            this.currentValue = this.currentValue.slice(0, -1);
+        } else {
+            this.currentValue = '0';
+        }
+
+        this.updateDisplay();
+    }
+
+    percent() {
+        const current = parseFloat(this.currentValue);
+        if (isNaN(current)) return;
+
+        this.currentValue = (current / 100).toString();
+        this.updateDisplay();
+    }
+
+    updateDisplay() {
+        this.currentDisplay.textContent = this.currentValue;
+    }
+
+    updatePreviousDisplay() {
+        if (this.operation && this.previousValue) {
+            const operatorSymbol = this.getOperatorSymbol(this.operation);
+            this.previousDisplay.textContent = `${this.previousValue} ${operatorSymbol}`;
+        } else {
+            this.previousDisplay.textContent = '';
+        }
+    }
+
+    getOperatorSymbol(operator) {
+        const symbols = {
+            '+': '+',
+            '-': '−',
+            '*': '×',
+            '/': '÷'
+        };
+        return symbols[operator] || operator;
+    }
+
+    showError() {
+        this.currentValue = 'Error';
+        this.updateDisplay();
+
+        setTimeout(() => {
+            this.clear();
+        }, 1500);
+    }
+
+    addClickEffect(button) {
+        button.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            button.style.transform = '';
+        }, 100);
+    }
+
+    highlightButton(selector) {
+        const button = document.querySelector(selector);
+        if (button) {
+            this.addClickEffect(button);
+        }
+    }
+
+    highlightOperator(button) {
+        this.removeOperatorHighlight();
+        button.classList.add('active');
+    }
+
+    removeOperatorHighlight() {
+        document.querySelectorAll('.btn-operator').forEach(btn => {
+            btn.classList.remove('active');
+        });
+    }
+
+    animateResult() {
+        this.currentDisplay.style.transform = 'scale(1.05)';
+        this.currentDisplay.style.transition = 'transform 0.2s ease-out';
+
+        setTimeout(() => {
+            this.currentDisplay.style.transform = 'scale(1)';
+        }, 200);
+    }
+}
+
+// Initialize calculator when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    const calculator = new Calculator();
+
+    // Add subtle hover sound effect (visual feedback)
+    document.querySelectorAll('.btn').forEach(button => {
+        button.addEventListener('mouseenter', () => {
+            if (window.matchMedia('(hover: hover)').matches) {
+                button.style.transition = 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)';
+            }
+        });
+    });
+});
