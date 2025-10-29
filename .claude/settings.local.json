@@ -2,7 +2,19 @@
   "permissions": {
     "allow": [
       "Bash(git init:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(brew list:*)",
+      "Bash(brew install:*)",
+      "Bash(git remote add:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(/usr/local/bin/gh --version)",
+      "Bash(/usr/local/bin/gh auth status)",
+      "Bash(/usr/local/bin/gh auth login)",
+      "Bash(/usr/local/bin/gh auth setup-git)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nAdd Vercel configuration\n\nConfigure Vercel deployment settings for static site hosting.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(vercel list:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
