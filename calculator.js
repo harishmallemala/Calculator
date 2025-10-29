@@ -4,12 +4,14 @@ class Calculator {
         this.previousValue = '';
         this.operation = null;
         this.shouldResetDisplay = false;
+        this.history = [];
 
         this.currentDisplay = document.getElementById('currentDisplay');
         this.previousDisplay = document.getElementById('previousDisplay');
 
         this.initializeButtons();
         this.initializeKeyboard();
+        this.initializeHistory();
     }
 
     initializeButtons() {
@@ -80,6 +82,26 @@ class Calculator {
         });
     }
 
+    initializeHistory() {
+        const historyPanel = document.createElement('div');
+        historyPanel.classList.add('history-panel');
+        this.historyPanel = historyPanel;
+
+        const historyContent = document.createElement('div');
+        historyContent.classList.add('history-content');
+        this.historyContent = historyContent;
+
+        const clearButton = document.createElement('div');
+        clearButton.classList.add('history-clear');
+        clearButton.textContent = 'Clear History';
+        clearButton.addEventListener('click', () => this.clearHistory());
+
+        historyPanel.appendChild(historyContent);
+        historyPanel.appendChild(clearButton);
+
+        document.querySelector('.calculator-container').appendChild(historyPanel);
+    }
+
     handleNumber(num) {
         // Prevent multiple decimal points
         if (num === '.' && this.currentValue.includes('.')) return;
@@ -125,6 +147,9 @@ class Calculator {
             case 'equals':
                 this.calculate();
                 break;
+            case 'history':
+                this.toggleHistory();
+                break;
         }
     }
 
@@ -165,6 +190,9 @@ class Calculator {
         if (result.toString().length > 12) {
             result = parseFloat(result.toPrecision(12));
         }
+
+        const calculation = `${this.previousValue} ${this.getOperatorSymbol(this.operation)} ${this.currentValue} = ${result}`;
+        this.addToHistory(calculation);
 
         this.currentValue = result.toString();
         this.operation = null;
@@ -274,6 +302,33 @@ class Calculator {
         setTimeout(() => {
             this.currentDisplay.style.transform = 'scale(1)';
         }, 200);
+    }
+
+    toggleHistory() {
+        this.historyPanel.classList.toggle('show');
+    }
+
+    addToHistory(calculation) {
+        this.history.unshift(calculation);
+        if (this.history.length > 20) {
+            this.history.pop();
+        }
+        this.renderHistory();
+    }
+
+    renderHistory() {
+        this.historyContent.innerHTML = '';
+        this.history.forEach(item => {
+            const historyItem = document.createElement('div');
+            historyItem.classList.add('history-item');
+            historyItem.textContent = item;
+            this.historyContent.appendChild(historyItem);
+        });
+    }
+
+    clearHistory() {
+        this.history = [];
+        this.renderHistory();
     }
 }
 
