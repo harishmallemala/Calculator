@@ -30,3 +30,4 @@ Temporary Items
 *.swo
 *~
 .vercel
+.env*.local
